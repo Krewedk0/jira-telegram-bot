@@ -4,7 +4,7 @@ from random import randint
 from languages import *
 from common import *
 from config import *
-from telegram import InlineKeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, ReplyKeyboardRemove, File, InputFile
+from telegram import InlineKeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, ReplyKeyboardRemove, File, InputFile, ParseMode
 import logging
 
 class User:
@@ -56,18 +56,20 @@ class User:
         keys=ReplyKeyboardMarkup(keyboard=project_keys, resize_keyboard=True)
         self.bot.sendMessage(chat_id=update.message.chat_id, text=task_project_message[self.language], reply_markup=keys)
 
-    def create_task(self, update, jira):
+    def create_task(self, update, jira, sprint):
         logging.debug("User.create_task: {0}, {1}, {2}".format(self.task.project, self.task.summary, self.task.task_text))
         if self.task.task_text is not None and self.task.task_to is not None:
             if self.task.summary is None:
                 self.task.summary=self.name+': '+" ".join(self.task.task_text.split()[:5])
-            jf={'project':self.task.project, \
-                'summary':self.task.summary, \
-                'description':self.task.task_text, \
-                'issuetype':{'name':'Task'}, \
-                'assignee':{'accountId':self.task.task_to.jirauser}, \
-                'priority':{'name':self.task.priority}\
+            jf={'project':self.task.project,
+                'summary':self.task.summary,
+                'description':self.task.task_text,
+                'issuetype':{'name':'Task'},
+                'assignee':{'accountId':self.task.task_to.jirauser},
+                'priority':{'name':self.task.priority}
             }
+            if sprint != 0:
+                jf['customfield_10020'] = sprint
             if self.task.deadline is not None:
                 jf['duedate']=str((datetime.now()+timedelta(days=int(self.task.deadline))).date())
             logging.debug("User.create_task: {0}, {1}, {2}".format(self.task.project, self.task.summary, self.task.task_text))
@@ -78,8 +80,8 @@ class User:
             f.write(issue.id)
             f.close()
             keys=ReplyKeyboardMarkup(keyboard=[[comm for comm in init_commands[self.language].values()]], resize_keyboard=True)
-            self.bot.sendMessage(chat_id=update.message.chat_id, text=task_was_created_message[self.language].format(issue.key,\
-                            self.task.task_to.name), reply_markup=keys)
+            self.bot.sendMessage(chat_id=update.message.chat_id, text=task_was_created_message[self.language].format(self.format_url(issue.key),
+                            self.task.task_to.name), reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN)
             self.reset()
         else:
             keys=ReplyKeyboardMarkup(keyboard=[[comm for comm in init_commands[self.language].values()]], resize_keyboard=True)
@@ -110,3 +112,6 @@ class User:
         self.send_task=False
         self.task=None
         self.bot=None
+
+    def format_url(self, issue_id):
+        return '[{0}]({1}/browse/{0})'.format(issue_id, jiraserver)

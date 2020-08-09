@@ -37,6 +37,16 @@ from models import User
 
 jira=JIRA(server=jiraserver, basic_auth=(jirauser, jirapass))
 
+
+def get_active_sprint():
+    sprints = jira.sprints(1, state='active')
+    sprintid = 0
+    for sprint in sprints:
+        if sprint.state == 'ACTIVE':
+            sprintid = sprint.id
+            break
+    return sprintid
+
 def show_list(bot, update):
     global jira
     issue_list=jira.search_issues(jsq="status = 'To Do'")
@@ -86,7 +96,7 @@ def cancel(bot, update):
     if sender in users:
         users[sender].reset()
         bot.sendMessage(chat_id=update.message.chat_id,
-                        text='Отмена', reply_markup=ReplyKeyboardRemove())
+                        text=u'Отмена', reply_markup=ReplyKeyboardRemove())
     else:
         bot.sendMessage(chat_id=update.message.chat_id,
                         text=no_authorization_message[lang].format(update.message.chat_id))
@@ -157,7 +167,7 @@ def task_router(bot, update):
             elif text==task_commands[lang]['project']: 
                 sender.ask_project(update)
             elif text==send_task_key[lang]: 
-                sender.create_task(update, jira)
+                sender.create_task(update, jira, get_active_sprint())
             elif sender.task_assignee_set and (text.encode() in jira_users): 
                 sender.task.set_assignee(update=update, assignee=users[jira_users[text.encode()]])
             elif sender.task_priority_set and (text in priority_list[lang]):
