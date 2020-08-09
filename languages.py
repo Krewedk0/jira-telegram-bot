@@ -29,7 +29,7 @@ deadline_was_set_message = {'ru':u'Срок исполения задачи: {0}
                             'en':'The deadline of the task is: {0} days'}
 priority_list = { 'ru': {u'Низкий':'Low',u'Средний':'Medium',u'Высокий':'High'},
                   'en': {'Low':'Low', 'Medium':'Medium', 'High':'High'} }
-task_priority_message = {'ru':u'Выбирете приоритет задачи',\
+task_priority_message = {'ru':u'Выбирите приоритет задачи',\
                         'en':'Choose the the priority for the task'}
 priority_was_set_message = {'ru':u'Задача будет создана с приоритетом: {0}',\
                            'en':'The task is going to be created with {0} priority'}

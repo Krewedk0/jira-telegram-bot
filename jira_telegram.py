@@ -26,7 +26,7 @@ from common import *
 from languages import *
 from telegram.ext import Updater, CommandHandler, Job, CallbackQueryHandler, RegexHandler, MessageHandler
 from telegram.ext.filters import Filters
-from telegram import InlineKeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, ReplyKeyboardRemove, File, InputFile
+from telegram import InlineKeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, ReplyKeyboardRemove, File, InputFile, ReplyKeyboardRemove
 from datetime import datetime, time, timedelta
 import urllib, re, os, logging
 from random import randint
@@ -68,6 +68,28 @@ def start(bot, update):
         bot.sendMessage(chat_id=update.message.chat_id, text=hello_message[lang], reply_markup=keys)
     else:
         bot.sendMessage(chat_id=update.message.chat_id, text=no_authorization_message[lang].format(update.message.chat_id))
+
+def create(bot, update):
+    bot.sendChatAction(chat_id=update.message.chat_id, action='typing')
+    sender = str(update.message.from_user.id)
+    lang = default_lang
+    if sender in users:
+        sender = users[sender]
+        sender.init_task(bot, update)
+    else:
+        bot.sendMessage(chat_id=update.message.chat_id,
+                        text=no_authorization_message[lang].format(update.message.chat_id))
+
+def cancel(bot, update):
+    sender = str(update.message.from_user.id)
+    lang = default_lang
+    if sender in users:
+        users[sender].reset()
+        bot.sendMessage(chat_id=update.message.chat_id,
+                        text='Отмена', reply_markup=ReplyKeyboardRemove())
+    else:
+        bot.sendMessage(chat_id=update.message.chat_id,
+                        text=no_authorization_message[lang].format(update.message.chat_id))
 
 def inline_update(bot, update):
     sender=users[str(update.callback_query.from_user.id)]
@@ -125,7 +147,7 @@ def task_router(bot, update):
         task=sender.task
         if sender.createtask:
             if text==cancel_key[lang]:
-                start(bot, update)
+                cancel(bot, update)
             elif text==task_commands[lang]['summary']: 
                 sender.ask_for_summary(update)
             elif text==task_commands[lang]['priority']: 
@@ -139,7 +161,7 @@ def task_router(bot, update):
             elif sender.task_assignee_set and (text.encode() in jira_users): 
                 sender.task.set_assignee(update=update, assignee=users[jira_users[text.encode()]])
             elif sender.task_priority_set and (text in priority_list[lang]):
-                sender.task.set_priority(update=update, priority=text)
+                sender.task.set_priority(update=update, priority=priority_list[lang][text])
             elif sender.task_project_set: 
                 sender.task.set_project(update=update, project=text)
             elif sender.task_deadline_set:
@@ -162,7 +184,7 @@ def task_router(bot, update):
 
 init_dirs()
 #logging.basicConfig(filename=log_dir+'main.log', level=logging.DEBUG)
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logging.info("Starting the service")
 updater=Updater(token=token)
 dispatcher=updater.dispatcher
@@ -171,9 +193,9 @@ jira_users={}
 users={}
 ju=jira.search_assignable_users_for_projects('',default_project)
 for user in ju:
-    if user.raw['name'] not in [user_list[u]['jirauser'] for u in user_list]:
-        user_list[user.raw['name']]={ 'name':user.raw['displayName'], 'username':None, 'project':default_project,\
-                             'jirauser':user.raw['name'], 'isAssignee':True, 'language':'ru', 'priority':'Medium'}
+    if user.raw['displayName'] not in [user_list[u]['jirauser'] for u in user_list]:
+        user_list[user.raw['displayName']]={ 'name':user.raw['displayName'], 'username':None, 'project':default_project,\
+                             'jirauser':user.raw['accountId'], 'isAssignee':True, 'language':'ru', 'priority':'Medium'}
 for user in user_list:
     if user_list[user]['jirauser']!=None and user_list[user]['isAssignee'] and user_list[user]['jirauser'] not in users_black_list:
         jira_users[user_list[user]['name'].encode()]=user
@@ -198,6 +220,7 @@ for user in user_list:
                      priority=user_list[user]['priority'])
 logging.debug("Users were initialized!")
 start_handler=CommandHandler('start', start)
+create_handler=CommandHandler('create', create)
 list_handler=CommandHandler('list', show_list)
 help_handler=CommandHandler('help', show_help)
 task_CRUD_handler=RegexHandler(r'.*', task_router)
@@ -210,6 +233,7 @@ dispatcher.add_handler(document_handler)
 dispatcher.add_handler(photo_handler)
 dispatcher.add_handler(voice_handler)
 dispatcher.add_handler(start_handler)
+dispatcher.add_handler(create_handler)
 dispatcher.add_handler(list_handler)
 dispatcher.add_handler(help_handler)
 dispatcher.add_handler(task_CRUD_handler)

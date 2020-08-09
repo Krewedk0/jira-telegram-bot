@@ -65,7 +65,7 @@ class User:
                 'summary':self.task.summary, \
                 'description':self.task.task_text, \
                 'issuetype':{'name':'Task'}, \
-                'assignee':{'name':self.task.task_to.jirauser}, \
+                'assignee':{'accountId':self.task.task_to.jirauser}, \
                 'priority':{'name':self.task.priority}\
             }
             if self.task.deadline is not None:

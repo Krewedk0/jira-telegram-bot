@@ -24,10 +24,10 @@ class JiraTask:
     def set_priority(self, update, priority):
         self.priority=priority
         self.author.task_priority_set=False
-        keys=InlineKeyboardMarkup([[InlineKeyboardButton(priority, callback_data='priority_change__'+self.task_id+\
-                                    '__'+priority_list[self.lang][priority]) for priority in priority_list[self.lang]]])
-        self.bot.sendMessage(chat_id=update.message.chat_id, text=priority_was_set_message[self.lang].format(\
-                        self.priority), reply_markup=keys)
+        #keys=InlineKeyboardMarkup([[InlineKeyboardButton(priority, callback_data='priority_change__'+self.task_id+\
+        #                            '__'+priority_list[self.lang][priority]) for priority in priority_list[self.lang]]])
+        #self.bot.sendMessage(chat_id=update.message.chat_id, text=priority_was_set_message[self.lang].format(\
+        #                self.priority), reply_markup=keys)
         keys=ReplyKeyboardMarkup(keyboard=[[comm for comm in task_commands[self.lang].values()],[cancel_key[self.lang],send_task_key[self.lang]]], resize_keyboard=True)
         if self.task_text == None:
             self.bot.sendMessage(chat_id=update.message.chat_id, text=task_create_message[self.lang], reply_markup=keys)
@@ -43,10 +43,10 @@ class JiraTask:
                 for j in range(len(project_keys[i])):
                     project_keys[i][j]=InlineKeyboardButton(project_keys[i][j], callback_data='project_change__'+
                                     self.task_id+'__'+self.project_list[project_keys[i][j]])
-            keys=InlineKeyboardMarkup(project_keys)
+            #keys=InlineKeyboardMarkup(project_keys)
             #keys=InlineKeyboardMarkup([[InlineKeyboardButton(project, callback_data='project_change__'+
             #                        self.task_id+'__'+self.project_list[project]) for project in self.project_list]])
-            self.bot.sendMessage(chat_id=update.message.chat_id, text=project_was_set_message[self.lang].format(project), reply_markup=keys)
+            #self.bot.sendMessage(chat_id=update.message.chat_id, text=project_was_set_message[self.lang].format(project), reply_markup=keys)
             keys=ReplyKeyboardMarkup(keyboard=[[comm for comm in task_commands[self.lang].values()],[cancel_key[self.lang],send_task_key[self.lang]]], resize_keyboard=True)
             if self.task_text == None:
                 self.bot.sendMessage(chat_id=update.message.chat_id, text=task_create_message[self.lang], reply_markup=keys)
@@ -62,9 +62,9 @@ class JiraTask:
             self.deadline=int(deadline)
             self.author.task_deadline_set=False
             keyboard=['1','2','3','4','5','10']
-            keys=InlineKeyboardMarkup([[InlineKeyboardButton(key, callback_data='deadline_change__'+self.task_id+
-                                        '__'+key) for key in keyboard]])
-            self.bot.sendMessage(chat_id=update.message.chat_id, text=deadline_was_set_message[self.lang].format(deadline), reply_markup=keys)
+            #keys=InlineKeyboardMarkup([[InlineKeyboardButton(key, callback_data='deadline_change__'+self.task_id+
+            #                            '__'+key) for key in keyboard]])
+            #self.bot.sendMessage(chat_id=update.message.chat_id, text=deadline_was_set_message[self.lang].format(deadline), reply_markup=keys)
             keys=ReplyKeyboardMarkup(keyboard=[[comm for comm in task_commands[self.lang].values()],[cancel_key[self.lang],send_task_key[self.lang]]], resize_keyboard=True)
             if self.task_text == None:
                 self.bot.sendMessage(chat_id=update.message.chat_id, text=task_create_message[self.lang], reply_markup=keys)
@@ -98,12 +98,12 @@ class JiraTask:
         for i in range(len(users_keys)):
             for j in range(len(users_keys[i])):
                 users_keys[i][j]=InlineKeyboardButton(users_keys[i][j].decode(), callback_data='user_change__'+self.task_id+\
-                                    '__'+self.jira_users[users_keys[i][j]])
+                                    '__test')#+self.jira_users[users_keys[i][j]])
         keys=InlineKeyboardMarkup(users_keys)
         #keys=InlineKeyboardMarkup([[InlineKeyboardButton(name.decode(), callback_data='user_change__'+self.task_id+\
         #                            '__'+self.jira_users[name]) for name in self.jira_users]])
-        self.bot.sendMessage(chat_id=update.message.chat_id, text=inline_assignee_message[self.lang].format(\
-                        assignee.name), reply_markup=keys)
+        #self.bot.sendMessage(chat_id=update.message.chat_id, text=inline_assignee_message[self.lang].format(\
+        #                assignee.name), reply_markup=keys)
         keys=ReplyKeyboardMarkup(keyboard=[[comm for comm in task_commands[self.lang].values()],[cancel_key[self.lang],\
                                  send_task_key[self.lang]]], resize_keyboard=True)
         if self.task_text == None:
