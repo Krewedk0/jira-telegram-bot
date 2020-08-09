@@ -4,6 +4,7 @@ from common import *
 from config import no_projects_per_line, no_users_per_line
 from languages import *
 from telegram import InlineKeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, ReplyKeyboardRemove, File, InputFile
+import sys
 
 class JiraTask:
     def __init__(self, bot, author, lang, project_list, defaul_project, jira_users, default_priority="Medium"):
@@ -78,12 +79,28 @@ class JiraTask:
     def set_summary(self, update, summary):
         self.summary=summary
         self.author.task_summary_set=False
-        keys=ReplyKeyboardMarkup(keyboard=[[comm for comm in task_commands[self.lang].values()],[cancel_key[self.lang],send_task_key[self.lang]]], resize_keyboard=True)
-        self.bot.sendMessage(chat_id=update.message.chat_id, text=summary_was_set_message[self.lang], reply_markup=keys)
-        if self.task_text is None:
-            self.bot.sendMessage(chat_id=update.message.chat_id, text=task_create_message[self.lang], reply_markup=keys)
-        else:
-            self.bot.sendMessage(chat_id=update.message.chat_id, text=task_is_ready_message[self.lang], reply_markup=keys)
+        buttons = self.inline_menu()
+        update.message.reply_to_message.edit_text(self.format_summary_message())
+        update.message.reply_to_message.edit_reply_markup(reply_markup=buttons)
+        #keys=ReplyKeyboardMarkup(keyboard=[[comm for comm in task_commands[self.lang].values()],[cancel_key[self.lang],send_task_key[self.lang]]], resize_keyboard=True)
+        #self.bot.sendMessage(chat_id=update.message.chat_id, text=summary_was_set_message[self.lang], reply_markup=keys)
+        #if self.task_text is None:
+        #    self.bot.sendMessage(chat_id=update.message.chat_id, text=task_create_message[self.lang], reply_markup=keys)
+        #else:
+        #self.bot.sendMessage(chat_id=update.message.chat_id, text=task_is_ready_message[self.lang], reply_markup=keys)
+
+    def set_description(self, update, description):
+        self.task_text=description
+        self.author.task_description_set=False
+        buttons = self.inline_menu()
+        update.message.reply_to_message.edit_text(self.format_summary_message())
+        update.message.reply_to_message.edit_reply_markup(reply_markup=buttons)
+        #keys=ReplyKeyboardMarkup(keyboard=[[comm for comm in task_commands[self.lang].values()],[cancel_key[self.lang],send_task_key[self.lang]]], resize_keyboard=True)
+        #self.bot.sendMessage(chat_id=update.message.chat_id, text=summary_was_set_message[self.lang], reply_markup=keys)
+        #if self.task_text is None:
+        #    self.bot.sendMessage(chat_id=update.message.chat_id, text=task_create_message[self.lang], reply_markup=keys)
+        #else:
+        #self.bot.sendMessage(chat_id=update.message.chat_id, text=task_is_ready_message[self.lang], reply_markup=keys)
     
     def set_task_text(self, update, text):
         if self.task_text is None:self.task_text=''
@@ -123,7 +140,27 @@ class JiraTask:
         self.bot.editMessageText(chat_id=update.callback_query.message.chat.id, message_id=message_id, \
             text=inline_assignee_message[self.lang].format(user.name), reply_markup=keys)
         self.bot.answerCallbackQuery(callback_query_id=update.callback_query.id, text=update_is_ok_message[self.lang])
-    
+
+    def inline_user_change_mine(self, update, user):
+        query = update.callback_query
+        query.answer()
+        self.task_to = user
+        self.author.task_assignee_set = False
+        msg = self.format_summary_message()
+        buttons = self.inline_menu()
+        query.edit_message_text(text=msg)
+        query.edit_message_reply_markup(reply_markup=buttons)
+
+    def inline_priority_change_mine(self, update, priority):
+        query = update.callback_query
+        query.answer()
+        self.priority = priority
+        self.author.task_priority_set = False
+        msg = self.format_summary_message()
+        buttons = self.inline_menu()
+        query.edit_message_text(text=msg)
+        query.edit_message_reply_markup(reply_markup=buttons)
+
     def inline_priority_change(self, update, priority):
         message_id=update.callback_query.message.message_id
         self.priority=priority
@@ -161,4 +198,35 @@ class JiraTask:
         self.bot.editMessageText(chat_id=update.callback_query.message.chat.id, message_id=message_id, \
                         text=project_was_set_message[self.lang].format(project), reply_markup=keys)
         self.bot.answerCallbackQuery(callback_query_id=update.callback_query.id, text=update_is_ok_message[self.lang])
-    
+
+    def format_summary_message(self, msg=''):
+        return('Тема: {0}\n'
+               'Описание: {1}\n'
+               'Исполнитель: {2}\n'
+               'Приоритет: {3}\n\n'
+               '{4}').format(self.summary,
+                             self.task_text,
+                             self.task_to.name if self.task_to is not None else 'None',
+                             self.priority,
+                             msg)
+
+    def inline_menu(self):
+        buttons = [[],[]]
+        for key in inline_menu_options:
+            button = InlineKeyboardButton(inline_menu_options[key],
+                                          callback_data='{0}|kek'.format(key))
+            buttons[0].append(button)
+        for key in inline_control_options:
+            button = InlineKeyboardButton(inline_control_options[key],
+                                          callback_data='{0}|kek'.format(key))
+            buttons[1].append(button)
+        return InlineKeyboardMarkup(buttons)
+
+    def inline_users_menu(self):
+        users_buttons = split_list(self.jira_users, no_users_per_line)
+        for i in range(len(users_buttons)):
+            for j in range(len(users_buttons[i])):
+                #print(sys.getsizeof('A|{0}'.format(self.jira_users[users_buttons[i][j]])))
+                users_buttons[i][j] = InlineKeyboardButton(users_buttons[i][j].decode(), callback_data='U|{0}'.format(self.jira_users[users_buttons[i][j]]))
+                #users_buttons[i][j] = InlineKeyboardButton(users_buttons[i][j].decode(), callback_data='user_change__{0}__{1}'.format(self.task_id, self.jira_users[users_buttons[i][j]]))
+        return InlineKeyboardMarkup(users_buttons)

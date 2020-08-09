@@ -91,30 +91,47 @@ def create(bot, update):
                         text=no_authorization_message[lang].format(update.message.chat_id))
 
 def cancel(bot, update):
-    sender = str(update.message.from_user.id)
+    query = update.callback_query
+    sender = str(query.from_user.id)
     lang = default_lang
     if sender in users:
         users[sender].reset()
-        bot.sendMessage(chat_id=update.message.chat_id,
-                        text=u'Отмена', reply_markup=ReplyKeyboardRemove())
+        query.message.delete()
+        #bot.sendMessage(chat_id=update.message.chat_id,
+        #                text=u'Отмена', reply_markup=ReplyKeyboardRemove())
     else:
         bot.sendMessage(chat_id=update.message.chat_id,
                         text=no_authorization_message[lang].format(update.message.chat_id))
 
 def inline_update(bot, update):
-    sender=users[str(update.callback_query.from_user.id)]
-    (action,task_id,new_data)=update.callback_query.data.split('__')
-    message_id=update.callback_query.message.message_id
-    lang=sender.language
-    if task_id==sender.task.task_id:
-        if action=='user_change': sender.task.inline_user_change(update, user=users[new_data])
-        elif action=='priority_change': sender.task.inline_priority_change(update, priority=new_data)
-        elif action=='deadline_change': sender.task.inline_deadline_change(update, deadline=new_data)
-        elif action=='project_change': sender.task.inline_project_change(update, project=new_data)
-        else:
-            bot.answerCallbackQuery(callback_query_id=update.callback_query.id, text=error_message[lang])
-    else:
-        bot.answerCallbackQuery(callback_query_id=update.callback_query.id, text=task_was_created_error[lang])
+    query = update.callback_query
+    sender = str(query.from_user.id)
+    if sender not in users or not hasattr(users[sender], 'task'):
+        return
+    sender = users[sender]
+    (action,data) = query.data.split('|')
+    if action == 'U': sender.task.inline_user_change_mine(update, user=users[data])
+    if action == 'P': sender.task.inline_priority_change_mine(update, priority=data)
+    if action == 'assignee_menu': sender.inline_ask_for_assignee(update)
+    if action == 'priority_menu': sender.inline_ask_for_priority(update)
+    if action == 'summary_menu': sender.inline_ask_for_summary(update)
+    if action == 'description_menu': sender.inline_ask_for_description(update)
+    if action == 'create': sender.create_task(update, jira, get_active_sprint())
+    if action == 'cancel': cancel(bot, update)
+
+    #sender=users[str(update.callback_query.from_user.id)]
+    #(action,task_id,new_data)=update.callback_query.data.split('__')
+    #message_id=update.callback_query.message.message_id
+    #lang=sender.language
+    #if task_id==sender.task.task_id:
+    #    if action=='user_change': sender.task.inline_user_change(update, user=users[new_data])
+    #    elif action=='priority_change': sender.task.inline_priority_change(update, priority=new_data)
+    #    elif action=='deadline_change': sender.task.inline_deadline_change(update, deadline=new_data)
+    #    elif action=='project_change': sender.task.inline_project_change(update, project=new_data)
+    #    else:
+    #        bot.answerCallbackQuery(callback_query_id=update.callback_query.id, text=error_message[lang])
+    #else:
+    #    bot.answerCallbackQuery(callback_query_id=update.callback_query.id, text=task_was_created_error[lang])
 
 def file_upload(bot, update):
     sender=users[str(update.message.from_user.id)]
@@ -156,40 +173,44 @@ def task_router(bot, update):
         lang=sender.language
         task=sender.task
         if sender.createtask:
-            if text==cancel_key[lang]:
-                cancel(bot, update)
-            elif text==task_commands[lang]['summary']: 
-                sender.ask_for_summary(update)
-            elif text==task_commands[lang]['priority']: 
-                sender.ask_for_priority(update)
-            elif text==task_commands[lang]['deadline']: 
-                sender.ask_for_deadline(update)
-            elif text==task_commands[lang]['project']: 
-                sender.ask_project(update)
-            elif text==send_task_key[lang]: 
-                sender.create_task(update, jira, get_active_sprint())
-            elif sender.task_assignee_set and (text.encode() in jira_users): 
-                sender.task.set_assignee(update=update, assignee=users[jira_users[text.encode()]])
-            elif sender.task_priority_set and (text in priority_list[lang]):
-                sender.task.set_priority(update=update, priority=priority_list[lang][text])
-            elif sender.task_project_set: 
-                sender.task.set_project(update=update, project=text)
-            elif sender.task_deadline_set:
-                sender.task.set_deadline(update=update, deadline=text)
-            elif sender.task_summary_set: 
-                sender.task.set_summary(update=update, summary=text)
-            elif sender.task.task_to is not None: 
-                sender.task.set_task_text(update=update, text=text)
-            else:
-                bot.sendMessage(chat_id=update.message.chat_id, text=error_message[lang], reply_markup=keys)
-        else:
-            if text.encode(encoding='utf_8', errors='strict')==cancel_key[lang].encode(encoding='utf_8', errors='strict'):start(bot, update)
-            elif text==init_commands[lang]['list']: sender.list_tasks(bot, update, jira)
-            elif text==init_commands[lang]['task']: sender.init_task(bot, update)
-            else:
-                bot.sendMessage(chat_id=update.message.chat_id, text=error_message[lang], reply_markup=keys)
-    else:
-        bot.sendMessage(chat_id=update.message.chat_id, text=no_authorization_message[lang].format(update.message.chat_id))
+            if sender.task_summary_set:
+                task.set_summary(update=update, summary=text)
+            if sender.task_description_set:
+                task.set_description(update=update, description=text)
+            #if text==cancel_key[lang]:
+            #    cancel(bot, update)
+            #elif text==task_commands[lang]['summary']:
+            #    sender.ask_for_summary(update)
+            #elif text==task_commands[lang]['priority']:
+            #    sender.ask_for_priority(update)
+            #elif text==task_commands[lang]['deadline']:
+            #    sender.ask_for_deadline(update)
+            #elif text==task_commands[lang]['project']:
+            #    sender.ask_project(update)
+            #elif text==send_task_key[lang]:
+            #    sender.create_task(update, jira, get_active_sprint())
+            #elif sender.task_assignee_set and (text.encode() in jira_users):
+            #    sender.task.set_assignee(update=update, assignee=users[jira_users[text.encode()]])
+            #elif sender.task_priority_set and (text in priority_list[lang]):
+            #    sender.task.set_priority(update=update, priority=priority_list[lang][text])
+            #elif sender.task_project_set:
+            #    sender.task.set_project(update=update, project=text)
+            #elif sender.task_deadline_set:
+            #    sender.task.set_deadline(update=update, deadline=text)
+            #elif sender.task_summary_set:
+            #    sender.task.set_summary(update=update, summary=text)
+            #elif sender.task.task_to is not None:
+            #    sender.task.set_task_text(update=update, text=text)
+            #else:
+            #    bot.sendMessage(chat_id=update.message.chat_id, text=error_message[lang], reply_markup=ReplyKeyboardRemove())
+        #else:
+        #    if text.encode(encoding='utf_8', errors='strict')==cancel_key[lang].encode(encoding='utf_8', errors='strict'):start(bot, update)
+        #    elif text==init_commands[lang]['list']: sender.list_tasks(bot, update, jira)
+        #    elif text==init_commands[lang]['task']: sender.init_task(bot, update)
+        #    else:
+        #        bot.sendMessage(chat_id=update.message.chat_id, text=error_message[lang], reply_markup=ReplyKeyboardRemove())
+    #else:
+    #    bot.sendMessage(chat_id=update.message.chat_id, text=no_authorization_message[lang].format(update.message.chat_id))
 
 
 init_dirs()
@@ -203,12 +224,13 @@ jira_users={}
 users={}
 ju=jira.search_assignable_users_for_projects('',default_project)
 for user in ju:
-    if user.raw['displayName'] not in [user_list[u]['jirauser'] for u in user_list]:
+    if user.raw['displayName'] not in [user_list[u]['name'] for u in user_list]:
         user_list[user.raw['displayName']]={ 'name':user.raw['displayName'], 'username':None, 'project':default_project,\
                              'jirauser':user.raw['accountId'], 'isAssignee':True, 'language':'ru', 'priority':'Medium'}
 for user in user_list:
     if user_list[user]['jirauser']!=None and user_list[user]['isAssignee'] and user_list[user]['jirauser'] not in users_black_list:
-        jira_users[user_list[user]['name'].encode()]=user
+        #jira_users[user_list[user]['name'].encode()]=user_list[user]['jirauser']
+        jira_users[user_list[user]['name'].encode()] = user
 projects={}
 jp=jira.projects()
 try:

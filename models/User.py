@@ -19,6 +19,12 @@ class User:
         self.isAssignee=isAssignee
         self.language=language
         self.priority=priority
+        self.task_assignee_set = False
+        self.task_priority_set = False
+        self.task_summary_set = False
+        self.task_description_set = False
+        self.createtask = False
+
         self.reset()
 
     def init_task(self, bot, update):
@@ -26,13 +32,55 @@ class User:
         self.task=JiraTask.JiraTask(defaul_project=self.project, default_priority=self.priority,bot=bot, author=self, lang=self.language, project_list=self.project_list, jira_users=self.jira_users)
         self.createtask=True
         self.task_assignee_set=True
-        users_keys=split_list(self.jira_users, no_users_per_line)
-        for i in range(len(users_keys)):
-            for j in range(len(users_keys[i])):
-                users_keys[i][j]=users_keys[i][j].decode()
-        users_keys.append([cancel_key[self.language]])
-        keys=ReplyKeyboardMarkup(keyboard=users_keys, resize_keyboard=True)
-        self.bot.sendMessage(chat_id=update.message.chat_id, text=task_assignee_message[self.language], reply_markup=keys)
+
+        reply_markup = self.task.inline_users_menu()
+        msg = self.task.format_summary_message('Выберите исполнителя')
+        update.message.reply_text(msg, reply_markup=reply_markup)
+
+        #users_keys=split_list(self.jira_users, no_users_per_line)
+        #for i in range(len(users_keys)):
+        #    for j in range(len(users_keys[i])):
+        #        users_keys[i][j]=users_keys[i][j].decode()
+        #users_keys.append([cancel_key[self.language]])
+        #keys=ReplyKeyboardMarkup(keyboard=users_keys, resize_keyboard=True)
+        #self.bot.sendMessage(chat_id=update.message.chat_id, text=task_assignee_message[self.language], reply_markup=keys)
+
+    def inline_ask_for_assignee(self, update):
+        query = update.callback_query
+        query.answer()
+        self.task_assignee_set = True
+        self.task_summary_set = False
+        self.task_description_set = False
+        reply_markup = self.task.inline_users_menu()
+        msg = self.task.format_summary_message('Выберите исполнителя')
+        query.edit_message_text(text=msg)
+        query.edit_message_reply_markup(reply_markup=reply_markup)
+
+    def inline_ask_for_priority(self, update):
+        query = update.callback_query
+        query.answer()
+        self.task_priority_set = True
+        buttons = [[InlineKeyboardButton(priority, callback_data='P|{0}'.format(priority)) for priority in priority_list[self.language].values()]]
+        reply_markup = InlineKeyboardMarkup(buttons)
+        msg = self.task.format_summary_message('Выберите приоритет')
+        query.edit_message_text(text=msg)
+        query.edit_message_reply_markup(reply_markup=reply_markup)
+
+    def inline_ask_for_summary(self, update):
+        query = update.callback_query
+        query.answer()
+        self.task_summary_set = True
+        self.task_description_set = False
+        msg = self.task.format_summary_message('Напишите название задачи')
+        query.edit_message_text(text=msg)
+
+    def inline_ask_for_description(self, update):
+        query = update.callback_query
+        query.answer()
+        self.task_description_set = True
+        self.task_summary_set = False
+        msg = self.task.format_summary_message('Напишите описание задачи')
+        query.edit_message_text(text=msg)
         
     def ask_for_summary(self, update):
         self.task_summary_set=True
@@ -58,6 +106,8 @@ class User:
 
     def create_task(self, update, jira, sprint):
         logging.debug("User.create_task: {0}, {1}, {2}".format(self.task.project, self.task.summary, self.task.task_text))
+        if self.task.task_text is None:
+            self.task.task_text = ''
         if self.task.task_text is not None and self.task.task_to is not None:
             if self.task.summary is None:
                 self.task.summary=self.name+': '+" ".join(self.task.task_text.split()[:5])
@@ -76,12 +126,14 @@ class User:
             issue=jira.create_issue(jf)
             for filename in self.task.file:
                 jira.add_attachment(issue=issue, attachment=filename)
-            f=open(db_dir+self.task.task_id,'w')
-            f.write(issue.id)
-            f.close()
-            keys=ReplyKeyboardMarkup(keyboard=[[comm for comm in init_commands[self.language].values()]], resize_keyboard=True)
-            self.bot.sendMessage(chat_id=update.message.chat_id, text=task_was_created_message[self.language].format(self.format_url(issue.key),
-                            self.task.task_to.name), reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN)
+            #f=open(db_dir+self.task.task_id,'w')
+            #f.write(issue.id)
+            #f.close()
+            query = update.callback_query
+            query.edit_message_text(text=task_was_created_message[self.language].format(self.format_url(issue.key), self.task.task_to.name), parse_mode=ParseMode.MARKDOWN)
+            #keys=ReplyKeyboardMarkup(keyboard=[[comm for comm in init_commands[self.language].values()]], resize_keyboard=True)
+            #self.bot.sendMessage(chat_id=update.message.chat_id, text=task_was_created_message[self.language].format(self.format_url(issue.key),
+            #                self.task.task_to.name), reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN)
             self.reset()
         else:
             keys=ReplyKeyboardMarkup(keyboard=[[comm for comm in init_commands[self.language].values()]], resize_keyboard=True)

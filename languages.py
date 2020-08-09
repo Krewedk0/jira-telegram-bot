@@ -62,3 +62,10 @@ cancel_key = {'ru':u'-ОТМЕНА-',\
               'en':'-CANCEL-'}
 send_task_key = {'ru':u'-ОТПРАВИТЬ-',\
                  'en':'-SEND-'}
+
+inline_menu_options = {'assignee_menu': u'Исполнитель',
+                       'summary_menu': u'Тема',
+                       'description_menu': u'Описание',
+                       'priority_menu': u'Приоритет'}
+inline_control_options = {'create': u'Создать',
+                          'cancel': u'Отмена'}
