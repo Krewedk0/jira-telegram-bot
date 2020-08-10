@@ -155,7 +155,7 @@ def file_upload(bot, update):
     except:
         return
     lang=sender.language
-    if sender.task.task_id!=None:
+    if hasattr(sender, 'task') and sender.task.task_id!=None:
         if update.message.voice!=None:
             f=update.message.voice.get_file()
             filename=f.download(custom_path=attach_dir+f.file_path.split('/').pop())
