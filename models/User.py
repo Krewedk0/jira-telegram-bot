@@ -27,7 +27,7 @@ class User:
 
         self.reset()
 
-    def init_task(self, bot, update):
+    def init_task(self, bot, update, summary, description):
         self.bot=bot
         self.task=JiraTask.JiraTask(defaul_project=self.project, default_priority=self.priority,bot=bot, author=self, lang=self.language, project_list=self.project_list, jira_users=self.jira_users)
         self.createtask=True
@@ -35,11 +35,13 @@ class User:
         self.task_priority_set = False
         self.task_summary_set = False
         self.task_description_set = False
+        self.task.summary = summary
+        self.task.task_text = description
 
         reply_markup = self.task.inline_users_menu()
         msg = self.task.format_summary_message('Выберите исполнителя')
-        update.message.reply_text(msg, reply_markup=reply_markup)
-
+        message = update.message.reply_text(msg, reply_markup=reply_markup)
+        self.task.message_id = message.message_id
         #users_keys=split_list(self.jira_users, no_users_per_line)
         #for i in range(len(users_keys)):
         #    for j in range(len(users_keys[i])):

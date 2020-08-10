@@ -21,6 +21,7 @@ class JiraTask:
         self.deadline=None
         self.file=[]
         self.task_id=self.author.user_id[:5]+str(datetime.now()).replace(' ','_').replace(':','').replace('.','')[10:]+str(randint(10000,99999))
+        self.message_id = None
 
     def set_priority(self, update, priority):
         self.priority=priority
