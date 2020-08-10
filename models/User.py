@@ -32,6 +32,9 @@ class User:
         self.task=JiraTask.JiraTask(defaul_project=self.project, default_priority=self.priority,bot=bot, author=self, lang=self.language, project_list=self.project_list, jira_users=self.jira_users)
         self.createtask=True
         self.task_assignee_set=True
+        self.task_priority_set = False
+        self.task_summary_set = False
+        self.task_description_set = False
 
         reply_markup = self.task.inline_users_menu()
         msg = self.task.format_summary_message('Выберите исполнителя')

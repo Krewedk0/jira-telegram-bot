@@ -133,6 +133,11 @@ def inline_update(bot, update):
     #else:
     #    bot.answerCallbackQuery(callback_query_id=update.callback_query.id, text=task_was_created_error[lang])
 
+def showInlineMenu(sender,update):
+    buttons = sender.task.inline_menu()
+    update.message.reply_to_message.edit_text(sender.task.format_summary_message())
+    update.message.reply_to_message.edit_reply_markup(reply_markup=buttons)
+
 def file_upload(bot, update):
     sender=users[str(update.message.from_user.id)]
     lang=sender.language
@@ -141,30 +146,36 @@ def file_upload(bot, update):
             f=update.message.voice.get_file()
             filename=f.download(custom_path=attach_dir+f.file_path.split('/').pop())
             sender.task.file.append(filename)
-            bot.sendMessage(chat_id=update.message.chat_id, text=file_accepted_message[lang])
+            showInlineMenu(sender, update)
+            #bot.sendMessage(chat_id=update.message.chat_id, text=file_accepted_message[lang])
         elif update.message.document!=None:
             f=update.message.document.get_file()
             filename=f.download(custom_path=attach_dir+f.file_path.split('/').pop())
             sender.task.file.append(filename)
-            bot.sendMessage(chat_id=update.message.chat_id, text=file_accepted_message[lang])
+            showInlineMenu(sender, update)
+            #bot.sendMessage(chat_id=update.message.chat_id, text=file_accepted_message[lang])
         elif update.message.video!=None:
             f=update.message.video.get_file()
             filename=f.download(custom_path=attach_dir+f.file_path.split('/').pop())
             sender.task.file.append(filename)
-            bot.sendMessage(chat_id=update.message.chat_id, text=file_accepted_message[lang])
+            showInlineMenu(sender, update)
+            #bot.sendMessage(chat_id=update.message.chat_id, text=file_accepted_message[lang])
         elif update.message.photo!=None:
             photo=update.message.photo.pop()
             f=photo.get_file()
             filename=f.download(custom_path=attach_dir+f.file_path.split('/').pop())
             sender.task.file.append(filename)
-            bot.sendMessage(chat_id=update.message.chat_id, text=file_accepted_message[lang])
+            showInlineMenu(sender, update)
+            #bot.sendMessage(chat_id=update.message.chat_id, text=file_accepted_message[lang])
         else:
-            bot.sendMessage(chat_id=update.message.chat_id, text=file_type_error[lang])
+            return 0
+            #bot.sendMessage(chat_id=update.message.chat_id, text=file_type_error[lang])
     else:
-        bot.sendMessage(chat_id=update.message.chat_id, text=no_task_error[lang])
+        return 0
+        #bot.sendMessage(chat_id=update.message.chat_id, text=no_task_error[lang])
 
 def task_router(bot, update):
-    bot.sendChatAction(chat_id=update.message.chat_id, action='typing')
+    #bot.sendChatAction(chat_id=update.message.chat_id, action='typing')
     text=update.message.text
     lang=default_lang
     sender=str(update.message.from_user.id)
@@ -264,10 +275,10 @@ voice_handler=MessageHandler(Filters.voice, file_upload)
 dispatcher.add_handler(document_handler)
 dispatcher.add_handler(photo_handler)
 dispatcher.add_handler(voice_handler)
-dispatcher.add_handler(start_handler)
+#dispatcher.add_handler(start_handler)
 dispatcher.add_handler(create_handler)
-dispatcher.add_handler(list_handler)
-dispatcher.add_handler(help_handler)
+#dispatcher.add_handler(list_handler)
+#dispatcher.add_handler(help_handler)
 dispatcher.add_handler(task_CRUD_handler)
 dispatcher.add_handler(inline_handler)
 

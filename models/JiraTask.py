@@ -203,11 +203,13 @@ class JiraTask:
         return('Тема: {0}\n'
                'Описание: {1}\n'
                'Исполнитель: {2}\n'
-               'Приоритет: {3}\n\n'
-               '{4}').format(self.summary,
+               'Приоритет: {3}\n'
+               'Файлы: {4}\n\n'
+               '{5}').format(self.summary,
                              self.task_text,
                              self.task_to.name if self.task_to is not None else 'None',
                              self.priority,
+                             len(self.file),
                              msg)
 
     def inline_menu(self):

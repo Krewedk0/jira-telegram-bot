@@ -49,7 +49,7 @@ hello_message = { 'ru':u'Чем обязаны?',\
                   'en':'How can I help you?'}
 task_was_created_error = { 'ru':u'Не возможно редактировать задачи после создания.', \
                            'en':u'Your are not allowed to edit tasks, as it was already sent to Assigne.' }
-no_authorization_message = { 'ru':u'У вас недостаточно привилегий для данной операции. Обратитесь к администратору системы, отправьте ему этот код {0}.',\
+no_authorization_message = { 'ru':u'У вас недостаточно привилегий для данной операции {0}.',\
                              'en':'You are not allowed to perform this type of operations. Ask it to the system administrator, send him this code {0}.'}
 task_was_created_message = { 'ru':u'Задача {0} отправлена пользователю {1}',\
                              'en':'Task {0} was sent to the user {1}' }
