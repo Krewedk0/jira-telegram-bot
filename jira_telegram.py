@@ -34,6 +34,7 @@ from jira import JIRA
 from copy import deepcopy
 from init import init_dirs
 from models import User
+import re
 
 jira=JIRA(server=jiraserver, basic_auth=(jirauser, jirapass))
 
@@ -81,11 +82,19 @@ def start(bot, update):
 
 def create(bot, update):
     bot.sendChatAction(chat_id=update.message.chat_id, action='typing')
+    try:
+        (summary,description) = update.message.text.split('\n\n')
+    except:
+        summary = update.message.text
+        description = None
+    summary = re.sub(r'/create(@citadeljirabot)?',  '', summary)
+    summary = summary.strip()
+    if summary == '': summary = None
     sender = str(update.message.from_user.id)
     lang = default_lang
     if sender in users:
         sender = users[sender]
-        sender.init_task(bot, update)
+        sender.init_task(bot, update, summary, description)
     else:
         bot.sendMessage(chat_id=update.message.chat_id,
                         text=no_authorization_message[lang].format(update.message.chat_id))
@@ -109,6 +118,8 @@ def inline_update(bot, update):
     if sender not in users or not hasattr(users[sender], 'task'):
         return
     sender = users[sender]
+    if sender.task.message_id != query.message.message_id:
+        return
     (action,data) = query.data.split('|')
     if action == 'U': sender.task.inline_user_change_mine(update, user=users[data])
     if action == 'P': sender.task.inline_priority_change_mine(update, priority=data)
@@ -226,7 +237,7 @@ def task_router(bot, update):
 
 init_dirs()
 #logging.basicConfig(filename=log_dir+'main.log', level=logging.DEBUG)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logging.info("Starting the service")
 updater=Updater(token=token)
 dispatcher=updater.dispatcher
