@@ -115,7 +115,7 @@ def cancel(bot, update):
 def inline_update(bot, update):
     query = update.callback_query
     sender = str(query.from_user.id)
-    if sender not in users or not hasattr(users[sender], 'task'):
+    if sender not in users or users[sender].task is None:
         return
     sender = users[sender]
     if sender.task.message_id != query.message.message_id:
@@ -155,7 +155,9 @@ def file_upload(bot, update):
     except:
         return
     lang=sender.language
-    if hasattr(sender, 'task') and sender.task.task_id!=None:
+    if sender.task is not None:
+        if sender.task.message_id != update.message.message_id:
+            return
         if update.message.voice!=None:
             f=update.message.voice.get_file()
             filename=f.download(custom_path=attach_dir+f.file_path.split('/').pop())
@@ -182,13 +184,15 @@ def file_upload(bot, update):
             showInlineMenu(sender, update)
             #bot.sendMessage(chat_id=update.message.chat_id, text=file_accepted_message[lang])
         else:
-            if re.match(r'/create(@citadeljirabot)?', update.message.text) and update.message.photo is not None:
-                photo = update.message.photo.pop()
-                f = photo.get_file()
-                filename = f.download(custom_path=attach_dir + f.file_path.split('/').pop())
-                create(bot, update, filename=filename)
+            return
             #bot.sendMessage(chat_id=update.message.chat_id, text=file_type_error[lang])
     else:
+        if re.match(r'/create(@citadeljirabot)?', update.message.caption) and update.message.photo is not None:
+            photo = update.message.photo.pop()
+            f = photo.get_file()
+            filename = f.download(custom_path=attach_dir + f.file_path.split('/').pop())
+            update.message.text = update.message.caption
+            create(bot, update, filename=filename)
         return 0
         #bot.sendMessage(chat_id=update.message.chat_id, text=no_task_error[lang])
 
