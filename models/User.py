@@ -27,7 +27,7 @@ class User:
 
         self.reset()
 
-    def init_task(self, bot, update, summary, description):
+    def init_task(self, bot, update, summary, description, filename):
         self.bot=bot
         self.task=JiraTask.JiraTask(defaul_project=self.project, default_priority=self.priority,bot=bot, author=self, lang=self.language, project_list=self.project_list, jira_users=self.jira_users)
         self.createtask=True
@@ -37,6 +37,8 @@ class User:
         self.task_description_set = False
         self.task.summary = summary
         self.task.task_text = description
+        if filename is not None:
+            self.task.file.append(filename)
 
         reply_markup = self.task.inline_users_menu()
         msg = self.task.format_summary_message('Выберите исполнителя')

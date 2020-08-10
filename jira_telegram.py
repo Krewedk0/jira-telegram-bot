@@ -80,7 +80,7 @@ def start(bot, update):
     else:
         bot.sendMessage(chat_id=update.message.chat_id, text=no_authorization_message[lang].format(update.message.chat_id))
 
-def create(bot, update):
+def create(bot, update, filename=None):
     bot.sendChatAction(chat_id=update.message.chat_id, action='typing')
     try:
         (summary,description) = update.message.text.split('\n\n')
@@ -94,7 +94,7 @@ def create(bot, update):
     lang = default_lang
     if sender in users:
         sender = users[sender]
-        sender.init_task(bot, update, summary, description)
+        sender.init_task(bot, update, summary, description, filename=filename)
     else:
         bot.sendMessage(chat_id=update.message.chat_id,
                         text=no_authorization_message[lang].format(update.message.chat_id))
@@ -150,7 +150,10 @@ def showInlineMenu(sender,update):
     update.message.reply_to_message.edit_reply_markup(reply_markup=buttons)
 
 def file_upload(bot, update):
-    sender=users[str(update.message.from_user.id)]
+    try:
+        sender=users[str(update.message.from_user.id)]
+    except:
+        return
     lang=sender.language
     if sender.task.task_id!=None:
         if update.message.voice!=None:
@@ -179,7 +182,11 @@ def file_upload(bot, update):
             showInlineMenu(sender, update)
             #bot.sendMessage(chat_id=update.message.chat_id, text=file_accepted_message[lang])
         else:
-            return 0
+            if re.match(r'/create(@citadeljirabot)?', update.message.text) and update.message.photo is not None:
+                photo = update.message.photo.pop()
+                f = photo.get_file()
+                filename = f.download(custom_path=attach_dir + f.file_path.split('/').pop())
+                create(bot, update, filename=filename)
             #bot.sendMessage(chat_id=update.message.chat_id, text=file_type_error[lang])
     else:
         return 0
