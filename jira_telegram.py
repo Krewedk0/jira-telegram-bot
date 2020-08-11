@@ -189,7 +189,7 @@ def file_upload(bot, update):
             return
             #bot.sendMessage(chat_id=update.message.chat_id, text=file_type_error[lang])
     else:
-        if re.match(r'/create(@citadeljirabot)?', update.message.caption) and update.message.photo is not None:
+        if re.match(r'/create(@citadeljirabot)?', str(update.message.caption)) and update.message.photo is not None:
             photo = update.message.photo.pop()
             f = photo.get_file()
             filename = f.download(custom_path=attach_dir + f.file_path.split('/').pop())
