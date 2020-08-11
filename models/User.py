@@ -78,7 +78,7 @@ class User:
         query.answer()
         self.task_summary_set = True
         self.task_description_set = False
-        msg = self.task.format_summary_message('Напишите название задачи')
+        msg = self.task.format_summary_message('Напишите название задачи в реплае к этому сообщению')
         query.edit_message_text(text=msg)
 
     def inline_ask_for_description(self, update):
@@ -86,7 +86,7 @@ class User:
         query.answer()
         self.task_description_set = True
         self.task_summary_set = False
-        msg = self.task.format_summary_message('Напишите описание задачи')
+        msg = self.task.format_summary_message('Напишите описание задачи в реплае к этому сообщению')
         query.edit_message_text(text=msg)
         
     def ask_for_summary(self, update):

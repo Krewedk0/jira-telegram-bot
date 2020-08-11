@@ -91,7 +91,10 @@ def create(bot, update, filename=None):
         description = None
     summary = re.sub(r'/create(@citadeljirabot)?',  '', summary)
     summary = summary.strip()
-    if summary == '': summary = None
+    if summary == '':
+        bot.sendMessage(chat_id=update.message.chat_id,
+                        text=u'Чтобы создать задачу напишите /create и через пробел название задачи\n\nОпционально, через пустой абзац, добавьте подробное описание задачи. Так же вы можете прикрепить к сообщению картинку. И она будет в задаче.')
+        return
     sender = str(update.message.from_user.id)
     lang = default_lang
     if sender in users:
@@ -116,6 +119,7 @@ def cancel(bot, update):
 
 def inline_update(bot, update):
     query = update.callback_query
+    query.answer()
     sender = str(query.from_user.id)
     if sender not in users or users[sender].task is None:
         return
