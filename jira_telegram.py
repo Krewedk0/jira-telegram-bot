@@ -83,7 +83,9 @@ def start(bot, update):
 def create(bot, update, filename=None):
     bot.sendChatAction(chat_id=update.message.chat_id, action='typing')
     try:
-        (summary,description) = update.message.text.split('\n\n')
+        rows = update.message.text.split('\n\n',1)
+        summary = rows[0]
+        description = rows[1]
     except:
         summary = update.message.text
         description = None
