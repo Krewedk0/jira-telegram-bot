@@ -79,7 +79,7 @@ class User:
         query = update.callback_query
         query.answer()
         self.task_type_set = True
-        buttons = [[InlineKeyboardButton(task_type, callback_data='T|{0}'.format(task_type)) for task_type in type_list.values()]]
+        buttons = [[InlineKeyboardButton(task_type, callback_data='T|{0}'.format(task_type)) for task_type in type_list]]
         reply_markup = InlineKeyboardMarkup(buttons)
         msg = self.task.format_summary_message('Выберите тип задачи')
         query.edit_message_text(text=msg)
