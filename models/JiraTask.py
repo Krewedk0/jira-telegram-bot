@@ -18,6 +18,7 @@ class JiraTask:
         self.summary=None
         self.task_to=None
         self.task_text=None
+        self.task_type = 'Task'
         self.deadline=None
         self.file=[]
         self.task_id=self.author.user_id[:5]+str(datetime.now()).replace(' ','_').replace(':','').replace('.','')[10:]+str(randint(10000,99999))
@@ -162,6 +163,16 @@ class JiraTask:
         query.edit_message_text(text=msg)
         query.edit_message_reply_markup(reply_markup=buttons)
 
+    def inline_type_change(self, update, task_type):
+        query = update.callback_query
+        query.answer()
+        self.task_type = task_type
+        self.author.task_type_set = False
+        msg = self.format_summary_message()
+        buttons = self.inline_menu()
+        query.edit_message_text(text=msg)
+        query.edit_message_reply_markup(reply_markup=buttons)
+
     def inline_priority_change(self, update, priority):
         message_id=update.callback_query.message.message_id
         self.priority=priority
@@ -204,11 +215,13 @@ class JiraTask:
         return('Тема: {0}\n'
                'Описание: {1}\n'
                'Исполнитель: {2}\n'
-               'Приоритет: {3}\n'
-               'Файлы: {4}\n\n'
-               '{5}').format(self.summary,
+               'Тип: {3}'
+               'Приоритет: {4}\n'
+               'Файлы: {5}\n\n'
+               '{6}').format(self.summary,
                              self.task_text,
                              self.task_to.name if self.task_to is not None else 'None',
+                             self.task_type,
                              self.priority,
                              len(self.file),
                              msg)

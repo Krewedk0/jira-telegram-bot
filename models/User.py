@@ -23,6 +23,7 @@ class User:
         self.task_priority_set = False
         self.task_summary_set = False
         self.task_description_set = False
+        self.task_type_set = False
         self.createtask = False
 
         self.reset()
@@ -35,6 +36,7 @@ class User:
         self.task_priority_set = False
         self.task_summary_set = False
         self.task_description_set = False
+        self.task_type_set = False
         self.task.summary = summary
         self.task.task_text = description
         if filename is not None:
@@ -70,6 +72,16 @@ class User:
         buttons = [[InlineKeyboardButton(priority, callback_data='P|{0}'.format(priority)) for priority in priority_list[self.language].values()]]
         reply_markup = InlineKeyboardMarkup(buttons)
         msg = self.task.format_summary_message('Выберите приоритет')
+        query.edit_message_text(text=msg)
+        query.edit_message_reply_markup(reply_markup=reply_markup)
+
+    def inline_ask_for_type(self, update):
+        query = update.callback_query
+        query.answer()
+        self.task_type_set = True
+        buttons = [[InlineKeyboardButton(task_type, callback_data='T|{0}'.format(task_type)) for task_type in type_list.values()]]
+        reply_markup = InlineKeyboardMarkup(buttons)
+        msg = self.task.format_summary_message('Выберите тип задачи')
         query.edit_message_text(text=msg)
         query.edit_message_reply_markup(reply_markup=reply_markup)
 
@@ -121,9 +133,9 @@ class User:
             jf={'project':self.task.project,
                 'summary':self.task.summary,
                 'description':self.task.task_text,
-                'issuetype':{'name':'Task'},
+                'issuetype':{'id':type_list[self.task.task_type]},
                 'assignee':{'accountId':self.task.task_to.jirauser},
-                'priority':{'name':self.task.priority}
+                'priority':{'name':self.task.priority},
             }
             if sprint != 0:
                 jf['customfield_10020'] = sprint
@@ -167,6 +179,7 @@ class User:
         self.task_deadline_set=False
         self.task_project_set=False
         self.task_assignee_set=False
+        self.task_type_set = False
         self.createtask=False
         self.send_task=False
         self.task=None
