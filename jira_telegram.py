@@ -129,7 +129,7 @@ def inline_update(bot, update):
     (action,data) = query.data.split('|')
     if action == 'U': sender.task.inline_user_change_mine(update, user=users[data])
     if action == 'P': sender.task.inline_priority_change_mine(update, priority=data)
-    if action == 'T': sender.task.inline_type_change(update, priority=data)
+    if action == 'T': sender.task.inline_type_change(update, task_type=data)
     if action == 'assignee_menu': sender.inline_ask_for_assignee(update)
     if action == 'priority_menu': sender.inline_ask_for_priority(update)
     if action == 'type_menu': sender.inline_ask_for_type(update)
