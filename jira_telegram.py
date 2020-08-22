@@ -130,7 +130,7 @@ def add_attach(issue_data, message):
     (issue_key, user_id) = issue_data.split('|')
     #only the user who created issue can add attachments to it
     logging.debug('attach, user: {0}, from: {1}'.format(user_id, message.from_user.id))
-    if message.from_user.id != user_id:
+    if str(message.from_user.id) != user_id:
         return
     issue = jira.issue(issue_key)
     #for photo in message.photo:
