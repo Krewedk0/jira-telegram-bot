@@ -129,13 +129,15 @@ def add_comment(issue_data, from_user, text):
 def add_attach(issue_data, message):
     (issue_key, user_id) = issue_data.split('|')
     #only the user who created issue can add attachments to it
+    logging.debug('attach, user: {0}, from: {1}'.format(user_id, message.from_user.id))
     if message.from_user.id != user_id:
         return
     issue = jira.issue(issue_key)
-    for photo in message.photo:
-        f = photo.get_file()
-        filename = f.download(custom_path=attach_dir + f.file_path.split('/').pop())
-        jira.add_attachment(issue=issue, attachment=filename)
+    #for photo in message.photo:
+    photo = message.photo.pop()
+    f = photo.get_file()
+    filename = f.download(custom_path=attach_dir + f.file_path.split('/').pop())
+    jira.add_attachment(issue=issue, attachment=filename)
     logging.info('Added attachments for task {0}'.format(issue_key))
 
 def inline_update(bot, update):
@@ -206,11 +208,11 @@ def file_upload(bot, update):
             showInlineMenu(sender, update)
             #bot.sendMessage(chat_id=update.message.chat_id, text=file_accepted_message[lang])
         elif update.message.photo!=None:
-            #photo=update.message.photo.pop()
-            for photo in update.message.photo:
-                f=photo.get_file()
-                filename=f.download(custom_path=attach_dir+f.file_path.split('/').pop())
-                sender.task.file.append(filename)
+            #for photo in update.message.photo:
+            photo=update.message.photo.pop()
+            f=photo.get_file()
+            filename=f.download(custom_path=attach_dir+f.file_path.split('/').pop())
+            sender.task.file.append(filename)
             showInlineMenu(sender, update)
             #bot.sendMessage(chat_id=update.message.chat_id, text=file_accepted_message[lang])
         else:
