@@ -126,6 +126,18 @@ def add_comment(issue_data, from_user, text):
     comment = jira.add_comment(issue_key, text)
     logging.info(comment)
 
+def add_attach(issue_data, message):
+    (issue_key, user_id) = issue_data.split('|')
+    #only the user who created issue can add attachments to it
+    if message.from_user.id != user_id:
+        return
+    issue = jira.issue(issue_key)
+    for photo in message.photo:
+        f = photo.get_file()
+        filename = f.download(custom_path=attach_dir + f.file_path.split('/').pop())
+        jira.add_attachment(issue=issue, attachment=filename)
+    logging.info('Added attachments for task {0}'.format(issue_key))
+
 def inline_update(bot, update):
     query = update.callback_query
     query.answer()
@@ -173,7 +185,7 @@ def file_upload(bot, update):
         return
     lang=sender.language
     if sender.task is not None:
-        if sender.task.message_id != update.message.message_id:
+        if update.message.reply_to_message is None or sender.task.message_id != update.message.reply_to_message.message_id:
             return
         if update.message.voice!=None:
             f=update.message.voice.get_file()
@@ -194,10 +206,11 @@ def file_upload(bot, update):
             showInlineMenu(sender, update)
             #bot.sendMessage(chat_id=update.message.chat_id, text=file_accepted_message[lang])
         elif update.message.photo!=None:
-            photo=update.message.photo.pop()
-            f=photo.get_file()
-            filename=f.download(custom_path=attach_dir+f.file_path.split('/').pop())
-            sender.task.file.append(filename)
+            #photo=update.message.photo.pop()
+            for photo in update.message.photo:
+                f=photo.get_file()
+                filename=f.download(custom_path=attach_dir+f.file_path.split('/').pop())
+                sender.task.file.append(filename)
             showInlineMenu(sender, update)
             #bot.sendMessage(chat_id=update.message.chat_id, text=file_accepted_message[lang])
         else:
@@ -210,6 +223,12 @@ def file_upload(bot, update):
             filename = f.download(custom_path=attach_dir + f.file_path.split('/').pop())
             update.message.text = update.message.caption
             create(bot, update, filename=filename)
+        elif update.message.reply_to_message is not None and update.message.photo is not None:
+            with os.scandir(issues_dir) as files:
+                for file in files:
+                    if file.name == str(update.message.reply_to_message.message_id):
+                        with open(file) as f:
+                            add_attach(issue_data=f.read().strip(), message=update.message)
         return 0
         #bot.sendMessage(chat_id=update.message.chat_id, text=no_task_error[lang])
 
