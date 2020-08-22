@@ -133,6 +133,9 @@ def add_attach(issue_data, message):
     if str(message.from_user.id) != user_id:
         return
     issue = jira.issue(issue_key)
+    if message.caption is not None:
+        comment = jira.add_comment(issue, message.caption)
+        logging.info('Added comment {0} for task {1}'.format(comment, issue))
     #for photo in message.photo:
     photo = message.photo.pop()
     f = photo.get_file()
