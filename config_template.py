@@ -5,6 +5,7 @@ jiraserver='https://yourcompanyname.atlassian.net'
 jirauser='jiraUser'
 jirapass='jiraUserPassword'
 db_dir='/var/local/jira_notifier/' # The app will create some files here, be sure that this app UID has such permessions.
+issues_dir = db_dir + 'issues/'
 log_dir=db_dir+'log/' # Log dir
 attach_dir=db_dir+'attach/' # Attach files are going to be stored here.
 

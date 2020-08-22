@@ -145,10 +145,12 @@ class User:
             issue=jira.create_issue(jf)
             for filename in self.task.file:
                 jira.add_attachment(issue=issue, attachment=filename)
-            f=open(db_dir+self.task.task_id,'w')
-            f.write(issue.id)
-            f.close()
             query = update.callback_query
+            message_id = query.message.message_id
+            user_id = query.from_user.id
+            f = open(issues_dir + message_id, 'w')
+            f.write('{0}|{1}'.format(issue.key, user_id))
+            f.close()
             query.edit_message_text(text=task_was_created_message[self.language].format(self.format_url(issue.key), self.task.task_to.name), parse_mode=ParseMode.MARKDOWN)
             #keys=ReplyKeyboardMarkup(keyboard=[[comm for comm in init_commands[self.language].values()]], resize_keyboard=True)
             #self.bot.sendMessage(chat_id=update.message.chat_id, text=task_was_created_message[self.language].format(self.format_url(issue.key),

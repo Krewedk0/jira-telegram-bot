@@ -35,6 +35,7 @@ from copy import deepcopy
 from init import init_dirs
 from models import User
 import re
+import os
 
 jira=JIRA(server=jiraserver, basic_auth=(jirauser, jirapass))
 
@@ -116,6 +117,14 @@ def cancel(bot, update):
     else:
         bot.sendMessage(chat_id=update.message.chat_id,
                         text=no_authorization_message[lang].format(update.message.chat_id))
+
+def add_comment(issue_data, from_user, text):
+    (issue_key, user_id) = issue_data.split('|')
+    #only the user who created issue can add comments to it
+    if from_user != user_id:
+        return
+    comment = jira.add_comment(issue_key, text)
+    logging.info(comment)
 
 def inline_update(bot, update):
     query = update.callback_query
@@ -218,6 +227,12 @@ def task_router(bot, update):
                 task.set_summary(update=update, summary=text)
             if sender.task_description_set:
                 task.set_description(update=update, description=text)
+        else:
+            with os.scandir(issues_dir) as files:
+                for file in files:
+                    if file.name == str(update.message.reply_to_message.message_id):
+                        with open(file) as f:
+                            add_comment(issue_data=f.read().strip(), from_user=sender, text=text)
             #if text==cancel_key[lang]:
             #    cancel(bot, update)
             #elif text==task_commands[lang]['summary']:
