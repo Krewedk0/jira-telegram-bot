@@ -232,7 +232,7 @@ def task_router(bot, update):
                 for file in files:
                     if file.name == str(update.message.reply_to_message.message_id):
                         with open(file) as f:
-                            add_comment(issue_data=f.read().strip(), from_user=sender, text=text)
+                            add_comment(issue_data=f.read().strip(), from_user=str(update.message.from_user.id), text=text)
             #if text==cancel_key[lang]:
             #    cancel(bot, update)
             #elif text==task_commands[lang]['summary']:

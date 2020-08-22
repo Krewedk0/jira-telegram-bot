@@ -146,8 +146,8 @@ class User:
             for filename in self.task.file:
                 jira.add_attachment(issue=issue, attachment=filename)
             query = update.callback_query
-            message_id = query.message.message_id
-            user_id = query.from_user.id
+            message_id = str(query.message.message_id)
+            user_id = str(query.from_user.id)
             f = open(issues_dir + message_id, 'w')
             f.write('{0}|{1}'.format(issue.key, user_id))
             f.close()
