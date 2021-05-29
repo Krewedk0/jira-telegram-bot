@@ -36,16 +36,18 @@ from init import init_dirs
 from models import User
 import re
 import os
+import requests
 
 jira=JIRA(server=jiraserver, basic_auth=(jirauser, jirapass))
 
 
 def get_active_sprint():
-    sprints = jira.sprints(1, state='active')
+    r = requests.get('https://paradigmcitadel.atlassian.net/rest/agile/1.0/board/14/sprint', auth=(jirauser, jirapass))
+    sprints = r.json()['values']
     sprintid = 0
     for sprint in sprints:
-        if sprint.state == 'ACTIVE':
-            sprintid = sprint.id
+        if sprint['state'] == 'active' and sprint['originBoardId'] == 14:
+            sprintid = sprint['id']
             break
     return sprintid
 

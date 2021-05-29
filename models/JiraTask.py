@@ -14,7 +14,7 @@ class JiraTask:
         self.author=author
         self.project=defaul_project
         self.project_list=project_list
-        self.priority=default_priority
+        #self.priority=default_priority
         self.summary=None
         self.task_to=None
         self.task_text=None
@@ -216,13 +216,11 @@ class JiraTask:
                'Описание: {1}\n'
                'Исполнитель: {2}\n'
                'Тип: {3}\n'
-               'Приоритет: {4}\n'
-               'Файлы: {5}\n\n'
-               '{6}').format(self.summary,
+               'Файлы: {4}\n\n'
+               '{5}').format(self.summary,
                              self.task_text,
                              self.task_to.name if self.task_to is not None else 'None',
                              self.task_type,
-                             self.priority,
                              len(self.file),
                              msg)
 

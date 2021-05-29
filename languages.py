@@ -66,9 +66,8 @@ send_task_key = {'ru':u'-ОТПРАВИТЬ-',\
 inline_menu_options = {'assignee_menu': u'Исполнитель',
                        #'summary_menu': u'Тема',
                        'type_menu': u'Тип',
-                       'description_menu': u'Описание',
-                       'priority_menu': u'Приоритет'}
+                       'description_menu': u'Описание'}
 inline_control_options = {'create': u'Создать',
                           'cancel': u'Отмена'}
 
-type_list = {'Task': 10002, 'Epic': 10005, 'Story': 10001, 'Bug': 10003}
+type_list = {'Task': 10031, 'Epic': 10033, 'Story': 10030, 'Bug': 10032}

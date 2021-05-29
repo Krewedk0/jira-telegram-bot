@@ -135,7 +135,6 @@ class User:
                 'description':self.task.task_text,
                 'issuetype':{'id':type_list[self.task.task_type]},
                 'assignee':{'accountId':self.task.task_to.jirauser},
-                'priority':{'name':self.task.priority},
             }
             if sprint != 0:
                 jf['customfield_10020'] = sprint
