@@ -26,7 +26,7 @@ from common import *
 from languages import *
 from telegram.ext import Updater, CommandHandler, Job, CallbackQueryHandler, RegexHandler, MessageHandler
 from telegram.ext.filters import Filters
-from telegram import InlineKeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, ReplyKeyboardRemove, File, InputFile, ReplyKeyboardRemove
+from telegram import InlineKeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, ReplyKeyboardRemove, File, InputFile, ParseMode
 from datetime import datetime, time, timedelta
 import urllib, re, os, logging
 from random import randint
@@ -36,6 +36,8 @@ from init import init_dirs
 from models import User
 import re
 import os
+import time
+import copy
 
 jira=JIRA(server=jiraserver, basic_auth=(jirauser, jirapass))
 
@@ -48,6 +50,15 @@ def get_active_sprint():
             sprintid = sprint.id
             break
     return sprintid
+
+def get_created_tasks():
+    issues = []
+    for file in os.listdir(issues_dir):
+        filename = os.path.join(issues_dir, file)
+        if os.stat(filename).st_mtime > time.time() - (70 * 86400):
+            f = open(filename, 'r')
+            issues.append(f.read())
+    return(issues)
 
 def show_list(bot, update):
     global jira
@@ -65,6 +76,36 @@ def show_list(bot, update):
         except FileNotFound as e:
             pass
     bot.sendMessage(chat_id=update.message.chat_id, text=message, parse_mode="HTML")
+
+def list_tasks(bot, update):
+    bot.sendChatAction(chat_id=update.message.chat_id, action='typing')
+    sender=str(update.message.from_user.id)
+    if sender not in users:
+        bot.sendMessage(chat_id=update.message.chat_id,
+                        text=no_authorization_message[lang].format(update.message.chat_id))
+        return
+    
+    _users = {}
+    for user in jira.search_assignable_users_for_projects('',default_project):
+        _users[user.raw['accountId']] = user.raw['displayName']
+
+    #users_buttons = split_list(auth_users, no_users_per_line)
+    users_buttons = split_list(_users, no_users_per_line)
+    jira_user = users.get(sender, None)
+    if jira_user:
+        account_id = jira_user.jirauser
+        for i in range(len(users_buttons)):
+            for j in range(len(users_buttons[i])):
+                if users_buttons[i][j] == account_id:
+                    users_buttons[i][j] = users_buttons[0][0]
+                    users_buttons[0][0] = account_id
+                    break
+    for i in range(len(users_buttons)):
+        for j in range(len(users_buttons[i])):
+            #users_buttons[i][j] = InlineKeyboardButton(auth_users[users_buttons[i][j]]['name'], callback_data=f'L|{users_buttons[i][j]}')
+            users_buttons[i][j] = InlineKeyboardButton(_users[users_buttons[i][j]], callback_data=f'L|{users_buttons[i][j]}')
+    msg = 'Вывести список задач, созданных пользователем'
+    update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(users_buttons))
 
 def show_help(bot, update):
     bot.sendMessage(chat_id=update.message.chat_id, text=message, parse_mode="HTML")
@@ -90,20 +131,20 @@ def create(bot, update, filename=None):
     except:
         summary = update.message.text
         description = None
-    summary = re.sub(r'/create(@citadeljirabot)?',  '', summary)
-    summary = summary.strip()
-    if summary == '':
-        bot.sendMessage(chat_id=update.message.chat_id,
-                        text=u'Чтобы создать задачу напишите /create и через пробел название задачи\n\nОпционально, через пустой абзац, добавьте подробное описание задачи. Так же вы можете прикрепить к сообщению картинку. И она будет в задаче.')
-        return
     sender = str(update.message.from_user.id)
     lang = default_lang
+    summary = re.sub(r'/create(@citadeljirabot)?',  '', summary)
+    summary = summary.strip()
     if sender in users:
         sender = users[sender]
         sender.init_task(bot, update, summary, description, filename=filename)
     else:
         bot.sendMessage(chat_id=update.message.chat_id,
                         text=no_authorization_message[lang].format(update.message.chat_id))
+    # if summary == '':
+    #     bot.sendMessage(chat_id=update.message.chat_id,
+    #                     text=u'Чтобы создать задачу напишите /create и через пробел название задачи\n\nОпционально, через пустой абзац, добавьте подробное описание задачи. Так же вы можете прикрепить к сообщению картинку. И она будет в задаче.')
+    #     return
 
 def cancel(bot, update):
     query = update.callback_query
@@ -145,14 +186,19 @@ def add_attach(issue_data, message):
 
 def inline_update(bot, update):
     query = update.callback_query
+    logging.info(query.data)
     query.answer()
+    (action,data) = query.data.split('|')
+
+    if action == 'L':
+        inline_list_tasks(bot, update, user=data)
+        return
     sender = str(query.from_user.id)
     if sender not in users or users[sender].task is None:
         return
     sender = users[sender]
     if sender.task.message_id != query.message.message_id:
         return
-    (action,data) = query.data.split('|')
     if action == 'U': sender.task.inline_user_change_mine(update, user=users[data])
     if action == 'P': sender.task.inline_priority_change_mine(update, priority=data)
     if action == 'T': sender.task.inline_type_change(update, task_type=data)
@@ -177,6 +223,82 @@ def inline_update(bot, update):
     #        bot.answerCallbackQuery(callback_query_id=update.callback_query.id, text=error_message[lang])
     #else:
     #    bot.answerCallbackQuery(callback_query_id=update.callback_query.id, text=task_was_created_error[lang])
+
+def inline_list_tasks(bot, update, user):
+    query = update.callback_query
+    query.message.delete()
+    bot.sendChatAction(chat_id=query.message.chat_id, action='typing')
+    messages = []
+    tg_user = None
+    for k, v in auth_users.items():
+        if v['jirauser'] == user:
+            tg_user = v['tg']
+    if tg_user:
+        issues = jira.search_issues(f'(reporter = "{user}" OR (reporter = "{jira_bot_id}"  AND description ~ "{tg_user}")) and Sprint = {get_active_sprint()} and project = "{default_project}"')
+    else:
+        issues = jira.search_issues(f'project="{default_project}" AND reporter="{user}" AND Sprint={get_active_sprint()}')
+    msg = 'Список задач:\n'
+
+    kek_issues = {}
+    for issue in issues:
+        status = issue.raw['fields']['status']['name']
+        if status not in kek_issues:
+            kek_issues[status] = []
+        issue_str = f'[{issue.fields.summary}]({jiraserver}/browse/{issue.key})\n'
+        kek_issues[status].append(issue_str)
+
+    for status in issue_order:
+        if status not in kek_issues:
+            continue
+        title_str = f'{emoji_map.get(status, "")}{status}:\n'
+        if len(title_str) + len(msg) >= 4096:
+            messages.append(msg)
+            msg = title_str
+        else:
+            msg += title_str
+        for _str in kek_issues[status]:
+            if len(_str) + len(msg) >= 4096:
+                messages.append(msg)
+                msg = _str
+            else:
+                msg += _str
+
+    # for k, v in kek_issues.items():
+    #     title_str = f'{emoji_map.get(k, "")}{k}:\n'
+    #     if len(title_str) + len(msg) >= 4096:
+    #         messages.append(msg)
+    #         msg = title_str
+    #     else:
+    #         msg += title_str
+    #     for _str in v:
+    #         if len(_str) + len(msg) >= 4096:
+    #             messages.append(msg)
+    #             msg = _str
+    #         else:
+    #             msg += _str
+
+    # for issue in get_created_tasks():
+    #     author = issue.split('|')[1]
+    #     print(author)
+    #     if author != user:
+    #         continue
+    #     try:
+    #         jissue = jira.issue(issue.split('|')[0])
+    #     except:
+    #         logging.info('Issue %s not found', issue.split('|')[0])
+    #         continue
+    #     logging.info(jissue.raw['fields']['customfield_10020'])
+    #     # Форматирование строки с инфой о задаче
+    #     issue_str = f'[{jissue.fields.summary}]({jiraserver}/browse/{jissue.key}) - {jissue.fields.status}\n'
+    #     #issue_str = f'{jissue.fields.summary} - {jissue.fields.status}\n'
+    #     if len(issue_str) + len(msg) >= 4096:
+    #         messages.append(msg)
+    #         msg = issue_str
+    #     else:
+    #         msg += issue_str
+    messages.append(msg)
+    for message in messages:
+        bot.sendMessage(chat_id=query.message.chat_id, text=message, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
 
 def showInlineMenu(sender,update):
     buttons = sender.task.inline_menu()
@@ -248,7 +370,7 @@ def task_router(bot, update):
         task=sender.task
         if sender.createtask:
             if sender.task_summary_set:
-                task.set_summary(update=update, summary=text)
+                task.set_summary_description(update=update, text=text)
             if sender.task_description_set:
                 task.set_description(update=update, description=text)
         else:
@@ -300,6 +422,8 @@ logging.info("Starting the service")
 updater=Updater(token=token)
 dispatcher=updater.dispatcher
 
+auth_users = copy.copy(user_list)
+
 jira_users={}
 users={}
 ju=jira.search_assignable_users_for_projects('',default_project)
@@ -333,7 +457,7 @@ for user in user_list:
 logging.debug("Users were initialized!")
 start_handler=CommandHandler('start', start)
 create_handler=CommandHandler('create', create)
-list_handler=CommandHandler('list', show_list)
+list_handler=CommandHandler('list', list_tasks)
 help_handler=CommandHandler('help', show_help)
 task_CRUD_handler=RegexHandler(r'.*', task_router)
 inline_handler=CallbackQueryHandler(inline_update)
@@ -346,7 +470,7 @@ dispatcher.add_handler(photo_handler)
 dispatcher.add_handler(voice_handler)
 #dispatcher.add_handler(start_handler)
 dispatcher.add_handler(create_handler)
-#dispatcher.add_handler(list_handler)
+dispatcher.add_handler(list_handler)
 #dispatcher.add_handler(help_handler)
 dispatcher.add_handler(task_CRUD_handler)
 dispatcher.add_handler(inline_handler)

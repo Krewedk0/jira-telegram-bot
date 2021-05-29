@@ -42,6 +42,9 @@ class User:
         if filename is not None:
             self.task.file.append(filename)
 
+        if not summary:
+            self.ask_for_summary(update)
+            return
         reply_markup = self.task.inline_users_menu()
         msg = self.task.format_summary_message('Выберите исполнителя')
         message = update.message.reply_text(msg, reply_markup=reply_markup)
@@ -53,6 +56,15 @@ class User:
         #users_keys.append([cancel_key[self.language]])
         #keys=ReplyKeyboardMarkup(keyboard=users_keys, resize_keyboard=True)
         #self.bot.sendMessage(chat_id=update.message.chat_id, text=task_assignee_message[self.language], reply_markup=keys)
+
+    def ask_for_summary(self, update):
+        self.task_summary_set = True
+        self.task_description_set = False
+        msg = self.task.format_summary_message('Напишите название задачи в реплае к этому сообщению\n\nОпционально добавьте описание задачи через пустой абзац')
+        button = InlineKeyboardButton(inline_control_options['cancel'], callback_data='cancel|kek')
+        markup = InlineKeyboardMarkup([[button]])
+        message = update.message.reply_text(msg, reply_markup=markup)
+        self.task.message_id = message.message_id
 
     def inline_ask_for_assignee(self, update):
         query = update.callback_query
@@ -101,7 +113,7 @@ class User:
         msg = self.task.format_summary_message('Напишите описание задачи в реплае к этому сообщению')
         query.edit_message_text(text=msg)
         
-    def ask_for_summary(self, update):
+    def ask_for_summary_old(self, update):
         self.task_summary_set=True
         keys=ReplyKeyboardMarkup(keyboard=[[comm for comm in task_commands[self.language].values()],\
                         [cancel_key[self.language],send_task_key[self.language]]], resize_keyboard=True)
@@ -127,6 +139,7 @@ class User:
         logging.debug("User.create_task: {0}, {1}, {2}".format(self.task.project, self.task.summary, self.task.task_text))
         if self.task.task_text is None:
             self.task.task_text = ''
+        self.task.task_text += f'\n_____________\nЗадача создана @{update.callback_query.from_user.username}'
         if self.task.task_text is not None and self.task.task_to is not None:
             if self.task.summary is None:
                 self.task.summary=self.name+': '+" ".join(self.task.task_text.split()[:5])

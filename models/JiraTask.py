@@ -78,6 +78,26 @@ class JiraTask:
             self.author.task_deadline_set=True
             self.bot.sendMessage(chat_id=update.message.chat_id, text=task_deadline_message[self.lang], reply_markup=keys)
     
+    def set_summary_description(self, update, text):
+        try:
+            rows = text.split('\n\n',1)
+            summary = rows[0]
+            description = rows[1]
+        except:
+            summary = text
+            description = None
+        self.summary = summary
+        self.task_text = description
+        self.author.task_summary_set=False
+
+        reply_markup = self.inline_users_menu()
+        update.message.reply_to_message.edit_text('Выберите исполнителя')
+        update.message.reply_to_message.edit_reply_markup(reply_markup=reply_markup)
+
+        # buttons = self.inline_menu()
+        # update.message.reply_to_message.edit_text(self.format_summary_message())
+        # update.message.reply_to_message.edit_reply_markup(reply_markup=buttons)
+
     def set_summary(self, update, summary):
         self.summary=summary
         self.author.task_summary_set=False
